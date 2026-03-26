@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Adopt Me Trade Simulator</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#cceeff; margin:0; display:flex; height:100vh; }
+  /* Sidebar for rarities */
+  #sidebar { width:220px; background:#004080; color:white; padding:10px; overflow-y:auto; }
+  #sidebar h2 { margin-top:0; font-size:16px; text-align:center; }
+  .rarity { margin:10px 0; cursor:pointer; background:#0066cc; padding:5px; border-radius:5px; }
+  .rarity:hover { background:#0052a3; }
+  .pet-list { display:none; margin:5px 0; max-height:200px; overflow-y:auto; border:1px solid #004080; border-radius:5px; padding:5px; background:#e0f0ff; }
+  .pet { padding:3px; cursor:pointer; }
+  .pet:hover { background:#99ccff; border-radius:3px; }
+  
+  /* Main content */
+  #main { flex:1; display:flex; flex-direction:column; padding:10px; }
+  #tradeContainer { display:flex; justify-content:space-between; flex:1; margin-top:10px; }
+  .trade-box { background:#f0f0f0; border:4px solid #000; border-radius:10px; width:48%; padding:10px; display:flex; flex-direction:column; }
+  .trade-header { font-weight:bold; font-size:18px; text-align:center; margin-bottom:10px; }
+  .total-value { font-weight:bold; margin-bottom:10px; text-align:center; }
+  .trade-pets { flex:1; overflow-y:auto; border-top:1px solid #ccc; padding-top:5px; }
+  .trade-pet { display:flex; justify-content:space-between; padding:3px; margin-bottom:2px; border-radius:5px; }
+  
+  /* Rarity colors */
+  .Common { border-left:5px solid gray; }
+  .Uncommon { border-left:5px solid green; }
+  .Rare { border-left:5px solid blue; }
+  .Ultra-Rare { border-left:5px solid purple; }
+  .Legendary { border-left:5px solid gold; }
+  
+  /* Outcome */
+  #outcome { font-size:20px; font-weight:bold; text-align:center; margin-top:10px; }
+  
+  /* Pet options */
+  .pet-options { font-size:12px; margin-left:10px; }
+  .pet-options input { margin-right:3px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h2>Rarity Filter</h2>
+  <div class="rarity" onclick="togglePets('Common')">Common</div>
+  <div class="pet-list" id="Common"></div>
+  <div class="rarity" onclick="togglePets('Uncommon')">Uncommon</div>
+  <div class="pet-list" id="Uncommon"></div>
+  <div class="rarity" onclick="togglePets('Rare')">Rare</div>
+  <div class="pet-list" id="Rare"></div>
+  <div class="rarity" onclick="togglePets('Ultra-Rare')">Ultra-Rare</div>
+  <div class="pet-list" id="Ultra-Rare"></div>
+  <div class="rarity" onclick="togglePets('Legendary')">Legendary</div>
+  <div class="pet-list" id="Legendary"></div>
+</div>
+
+<div id="main">
+  <div id="tradeContainer">
+    <div class="trade-box" id="youBox">
+      <div class="trade-header">YOU</div>
+      <div class="total-value">Total: <span id="youTotal">0</span></div>
+      <div class="trade-pets" id="youPets"></div>
+    </div>
+    <div class="trade-box" id="themBox">
+      <div class="trade-header">THEM</div>
+      <div class="total-value">Total: <span id="themTotal">0</span></div>
+      <div class="trade-pets" id="themPets"></div>
+    </div>
+  </div>
+  <div id="outcome">Trade Status: -</div>
+</div>
+
+<script>
+// Pet database (all pets simplified, add all pets here with actual high-demand values)
+const allPets = [
+  {name:"Dog", rarity:"Common", value:2},
+  {name:"Cat", rarity:"Common", value:2.5},
+  {name:"Parrot", rarity:"Rare", value:85},
+  {name:"Owl", rarity:"Rare", value:95},
+  {name:"Bat Dragon", rarity:"Legendary", value:200},
+  {name:"Shadow Dragon", rarity:"Legendary", value:280},
+  {name:"Kangaroo", rarity:"Legendary", value:180},
+  {name:"Turtle", rarity:"Legendary", value:170},
+  {name:"Frost Dragon", rarity:"Legendary", value:100},
+  {name:"Giraffe", rarity:"Ultra-Rare", value:160},
+  {name:"Dalmatian", rarity:"Ultra-Rare", value:15},
+  {name:"Hedgehog", rarity:"Ultra-Rare", value:14},
+  // Continue adding all pets
+];
+
+// Populate pet lists by rarity
+const rarities = ["Common","Uncommon","Rare","Ultra-Rare","Legendary"];
+rarities.forEach(rarity=>{
+  const container = document.getElementById(rarity);
+  // Filter pets by rarity and sort by value ascending
+  allPets.filter(p=>p.rarity===rarity).sort((a,b)=>a.value-b.value).forEach(p=>{
+    const div = document.createElement("div");
+    div.className="pet";
+    div.textContent = `${p.name} (${p.value})`;
+    div.onclick = ()=>addPetPopup(p);
+    container.appendChild(div);
+  });
+});
+
+// Toggle visibility of pet list
+function togglePets(rarity){
+  const list = document.getElementById(rarity);
+  list.style.display = (list.style.display==="block") ? "none" : "block";
+}
+
+// Show popup for options: Neon/Mega/Fly/Ride and choose box
+function addPetPopup(pet){
+  const choice = prompt(`Add "${pet.name}" to YOU or THEM?\nOptions: Neon,Y/N Mega,Y/N Fly,Y/N Ride,Y/N\nFormat: YOU N N Y N`);
+  if(!choice) return;
+  const parts = choice.split(" ");
+  if(parts.length<6){ alert("Invalid format"); return; }
+  const box = parts[0].toLowerCase();
+  const neon = parts[1].toUpperCase()==="Y";
+  const mega = parts[2].toUpperCase()==="Y";
+  const fly = parts[3].toUpperCase()==="Y";
+  const ride = parts[4].toUpperCase()==="Y";
+  addPetToBox(pet,box,{neon,mega,fly,ride});
+}
+
+// Add pet to trade box
+function addPetToBox(pet,box,options){
+  const boxPets = (box==="you") ? youPets : themPets;
+  const totalElem = (box==="you") ? document.getElementById("youTotal") : document.getElementById("themTotal");
+  let value = pet.value;
+  if(options.mega) value *=1.5;
+  else if(options.neon) value*=1.2;
+  const div = document.createElement("div");
+  div.className="trade-pet "+pet.rarity;
+  let icons = "";
+  if(options.fly) icons+="🕊️";
+  if(options.ride) icons+="🏇";
+  if(options.neon) icons+="✨";
+  if(options.mega) icons+="🌟";
+  div.textContent = `${pet.name} ${icons} (${value.toFixed(2)})`;
+  boxPets.appendChild(div);
+  
+  // Update total
+  const currentTotal = parseFloat(totalElem.textContent);
+  totalElem.textContent = (currentTotal+value).toFixed(2);
+  
+  // Update outcome
+  updateOutcome();
+}
+
+// References to boxes
+const youPets = document.getElementById("youPets");
+const themPets = document.getElementById("themPets");
+
+// Check trade outcome
+function updateOutcome(){
+  const youTotal = parseFloat(document.getElementById("youTotal").textContent);
+  const themTotal = parseFloat(document.getElementById("themTotal").textContent);
+  const outcome = document.getElementById("outcome");
+  if(youTotal > themTotal) { outcome.textContent = "Trade Status: Lose ❌"; outcome.style.color="red"; }
+  else if(youTotal === themTotal){ outcome.textContent = "Trade Status: Fair ✅"; outcome.style.color="green"; }
+  else { outcome.textContent = "Trade Status: Win 🎉"; outcome.style.color="blue"; }
+}
+</script>
+
+</body>
+</html>
